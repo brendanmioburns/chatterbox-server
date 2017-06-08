@@ -11,81 +11,57 @@ this file and include it in basic-server.js so that it actually works.
 *Hint* Check out the node module documentation at http://nodejs.org/api/modules.html.
 
 **************************************************************/
+var messages = [];
 
-const url = require('url');
+const querystring = require('querystring');
 
+var defaultCorsHeaders = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'access-control-allow-headers': 'content-type, accept',
+  'access-control-max-age': 10 // Seconds.
+};
+
+var get = function(statusCode, headers, response) {
+  statusCode = 200;
+  headers['Content-Type'] = 'application/JSON';
+  response.writeHead(statusCode, headers);
+  var responseData = JSON.stringify({results: messages});
+  response.end(responseData);
+};
+
+var post = function(statusCode, headers, request, response) {
+  statusCode = 201;
+  headers['Content-Type'] = 'application/JSON';
+  response.writeHead(statusCode, headers);
+  var body = '';
+  request.on('data', function(chunk) {
+    body = body.concat(chunk.toString());
+  }).on('end', function() {
+    var newMessage = querystring.parse(body);
+    newMessage.ObjectId = messages.length;
+    messages.push(newMessage);
+  });
+};
 
 var requestHandler = function(request, response) {
-  // Request and Response come from node's http module.
 
-  var body = [];
+  var statusCode = undefined;
 
-  request.on('data', function(chunk) {
-    request.setEncoding('utf8');
-    body.push(chunk.toString());
-    console.log(body);
-  });
-
-  // They include information about both the incoming request, such as
-  // headers and URL, and about the outgoing response, such as its status
-  // and content.
-  //
-  // Documentation for both request and response can be found in the HTTP section at
-  // http://nodejs.org/documentation/api/
-
-  // Do some basic logging.
-  //
-  // Adding more logging to your server can be an easy way to get passive
-  // debugging help, but you should always be careful about leaving stray
-  // console.logs in your code.
   console.log('Serving request type ' + request.method + ' for url ' + request.url);
 
-  // The outgoing status.
-  var statusCode = 200;
-
-  if (request.method === 'POST') {
-    statusCode = 201;
-    
-  } else if (request.method === 'GET') {
-    statusCode = 200;
-  }
-
-  // See the note below about CORS headers.
-  var defaultCorsHeaders = {
-    'access-control-allow-origin': '*',
-    'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'access-control-allow-headers': 'content-type, accept',
-    'access-control-max-age': 10 // Seconds.
-  };
   var headers = defaultCorsHeaders;
-
-  // Tell the client we are sending them plain text.
-  //
-  // You will need to change this if you are sending something
-  // other than plain text, like JSON or HTML.
-  headers['Content-Type'] = 'application/JSON';
   
-  // server.on('data', (chunk) => {
-  //   console.log(`received ${chunk.length} bytes of data`);
-  // });
-
-  // .writeHead() writes to the request line and headers of the response,
-  // which includes the status and all headers.
-  response.writeHead(statusCode, headers);
-
-  if (request.method === 'GET') {
-   
-    var message = {
-      roomname: 'x',
-      username: 'y',
-      text: 'z'
-    };
-
-    var newMessage = JSON.stringify(message);
-
-    var buf = new Buffer.from(newMessage);
-    body.push(buf);
-    response.end(JSON.stringify({results: body}));
+  if (request.method === 'GET' && request.url === '/classes/messages') {
+    get(statusCode, headers, response);
+  } else if (request.method === 'POST') {  
+    post(statusCode, headers, request, response);
+  } else if (request.method === 'OPTIONS') {
+    var statusCode = 200;
+    response.writeHead(statusCode, headers);
+  } else {
+    var statusCode = 404;
+    response.writeHead(statusCode, headers);
   }
 
   

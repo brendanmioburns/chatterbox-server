@@ -13,7 +13,7 @@ var app = {
   init: function() {
     // Get username
     app.username = window.location.search.substr(10);
-
+    app.stopSpinner();
     // Cache jQuery selectors
     app.$message = $('#message');
     app.$chats = $('#chats');
@@ -25,10 +25,8 @@ var app = {
     app.$send.on('submit', app.handleSubmit);
     app.$roomSelect.on('change', app.handleRoomChange);
      
-    //added this:
-    app.$send.trigger('submit');
+
     // Fetch previous messages
-    app.startSpinner();
     app.fetch(false);
 
     // Poll for new messages
@@ -218,7 +216,8 @@ var app = {
     var message = {
       username: app.username,
       text: app.$message.val(),
-      roomname: app.roomname || 'lobby'
+      roomname: app.roomname || 'lobby',
+      objectId: app.lastMessageId + 1
     };
 
     app.send(message);
